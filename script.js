@@ -275,15 +275,25 @@ let lastPan = null;
 
 const mapWrapper = document.querySelector(".map-wrapper");
 
+// Flag para saber si la herramienta activa es lápiz/marker/eraser
+let isDrawingToolActive = tool === "pen" || tool === "marker" || tool === "eraser";
+
+// Actualizamos flag cuando se cambian herramientas
+function updateDrawingFlag() {
+  isDrawingToolActive = tool === "pen" || tool === "marker" || tool === "eraser";
+}
+[textBtn, penBtn, markerBtn, eraserBtn].forEach(b=>{
+  b.addEventListener("click", updateDrawingFlag);
+});
+
 mapWrapper.addEventListener("touchstart", e => {
   if(e.touches.length === 2){
-    // Inicia pinch
     lastDist = Math.hypot(
       e.touches[0].clientX - e.touches[1].clientX,
       e.touches[0].clientY - e.touches[1].clientY
     );
-  } else if(e.touches.length === 1 && scale > 1){
-    // Inicia pan
+  } else if(e.touches.length === 1 && scale > 1 && !isDrawingToolActive){
+    // Inicia pan solo si NO estoy usando lápiz/marker/eraser
     lastPan = { x: e.touches[0].clientX, y: e.touches[0].clientY };
   }
 }, {passive:false});
@@ -299,12 +309,12 @@ mapWrapper.addEventListener("touchmove", e => {
     if(lastDist){
       let factor = dist / lastDist;
       scale *= factor;
-      scale = Math.min(Math.max(scale, 1), 4); // límite de zoom
+      scale = Math.min(Math.max(scale, 1), 4);
       applyTransform();
     }
     lastDist = dist;
   } else if(e.touches.length === 1 && scale > 1 && lastPan){
-    // Pan
+    // Pan solo si NO estamos dibujando
     e.preventDefault();
     const dx = e.touches[0].clientX - lastPan.x;
     const dy = e.touches[0].clientY - lastPan.y;
@@ -312,7 +322,6 @@ mapWrapper.addEventListener("touchmove", e => {
     offsetX += dx;
     offsetY += dy;
 
-    // Limitar pan para que no se vaya demasiado
     const rect = mapWrapper.getBoundingClientRect();
     const maxX = (rect.width * (scale - 1)) / 2;
     const maxY = (rect.height * (scale - 1)) / 2;
@@ -334,3 +343,4 @@ mapWrapper.addEventListener("touchend", e => {
 function applyTransform(){
   mapWrapper.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
 }
+
